@@ -1,10 +1,12 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   return (
     <div>
       <div className="flex justify-end p-2 text-xl cursor-pointer text-[#00AAFF]">
-        MY PROFILE
+        <Link to={"/profile"}>MY PROFILE</Link>
+        
       </div>
       <hr className="border-t-1 border-black mx-2" />
 
