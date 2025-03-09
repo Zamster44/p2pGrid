@@ -1,12 +1,40 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link , useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const Dashboard = () => {
+    const [isOpen, setIsOpen] = useState(false);
+
+  const navigate = useNavigate()
+    const onLogout = () => {
+      localStorage.clear();
+      navigate("/login")
+    }
+
   return (
     <div>
-      <div className="flex justify-end p-2 text-xl cursor-pointer text-[#00AAFF]">
-        <Link to={"/profile"}>MY PROFILE</Link>
-        
+      <div className="flex justify-end p-2 text-xl cursor-pointer ">
+        <button 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="text-[#00AAFF]"
+        >
+            MY PROFILE
+        </button>
+        {isOpen && (
+        <div className="absolute right-2 mt-10 w-48 bg-[#D9D9D9] border rounded-lg shadow-lg">
+          <div className="p-2 space-y-2">
+            <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                <Link to={"/profile"}>Profile</Link>
+            </div>
+            <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                <Link to={"/sellerForm"}>Seller </Link>
+            </div>
+            <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                <button onClick={onLogout}>Logout</button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
       <hr className="border-t-1 border-black mx-2" />
 
