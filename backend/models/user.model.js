@@ -5,6 +5,7 @@ const userSchema = new Schema({
     fullName: { type: String },
     email: { type: String },
     password: { type: String },
+    seller : { type: Boolean },
     createdOn: { type: Date, default: Date.now }
 });
 

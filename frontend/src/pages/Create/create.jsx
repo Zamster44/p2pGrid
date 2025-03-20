@@ -32,6 +32,7 @@ const create = () => {
         fullName: name,
         email: email,
         password: password,
+        seller : false,
       });
 
       if (response.data && response.data.error) {
@@ -41,6 +42,7 @@ const create = () => {
 
       if (response.data && response.data.accessToken) {
         localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("user", JSON.stringify(response.data));
         navigate("/dashboard");
       }
     } catch (error) {
