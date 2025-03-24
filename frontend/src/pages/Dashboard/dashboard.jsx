@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState , useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Box, Button, Typography } from "@mui/material";
 import axoisInstance from "../../utils/axoisInstance";
 
@@ -9,18 +9,24 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sellers, setSellers] = useState([]);
   const [selectedSeller, setSelectedSeller] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    const fetchSellers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axoisInstance.get("/getSellers"); // Use axiosInstance to make the GET request
-        setSellers(response.data.sellers); // Update the sellers state
+        // Fetch sellers
+        const sellersResponse = await axoisInstance.get("/getSellers");
+        setSellers(sellersResponse.data.sellers);
+
+        // Fetch current user data
+        const userResponse = await axoisInstance.get("/current-user");
+        setCurrentUser(userResponse.data.user);
       } catch (error) {
-        console.error("Error fetching sellers:", error);
+        console.error("Error fetching data:", error);
       }
     };
 
-    fetchSellers();
+    fetchData();
   }, []);
 
   const navigate = useNavigate();
@@ -30,25 +36,31 @@ const Dashboard = () => {
   };
 
   const handleSellerClick = (seller) => {
-    setSelectedSeller(seller); // Set the selected seller
-    setIsModalOpen(true); // Open the modal
+    setSelectedSeller(seller);
+    setIsModalOpen(true);
   };
 
   return (
     <div>
-      <div className="flex justify-end p-2 text-xl cursor-pointer ">
+      <div className="flex justify-end p-2 text-xl cursor-pointer">
         <button onClick={() => setIsOpen(!isOpen)} className="text-[#00AAFF]">
           MY PROFILE
         </button>
         {isOpen && (
-          <div className="absolute right-2 mt-10 w-48 bg-[#D9D9D9] border rounded-lg shadow-lg">
+          <div className="absolute right-2 mt-10 w-60 bg-[#D9D9D9] border rounded-lg shadow-lg">
             <div className="p-2 space-y-2">
               <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                 <Link to={"/profile"}>Profile</Link>
               </div>
-              <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                <Link to={"/sellerForm"}>Seller </Link>
-              </div>
+              {currentUser?.seller ? (
+                <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                  <Link to={"/sellerForm"}>Edit Seller Form</Link>
+                </div>
+              ) : (
+                <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                  <Link to={"/sellerForm"}>Add Seller Form</Link>
+                </div>
+              )}
               <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                 <button onClick={onLogout}>Logout</button>
               </div>
