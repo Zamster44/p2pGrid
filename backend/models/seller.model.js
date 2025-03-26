@@ -8,6 +8,7 @@ const sellerSchema = new Schema({
     powerToBeTransForm :{ type: String , required: true},
     currentStateOfCharge :{ type: String , required: true},
     unitNo :{ type: String , required: true},
+    blockchainAddress: { type: String },
     createdOn: { type: Date, default: Date.now }
 });
 

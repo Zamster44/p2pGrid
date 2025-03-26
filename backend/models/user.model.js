@@ -6,6 +6,8 @@ const userSchema = new Schema({
     email: { type: String },
     password: { type: String },
     seller : { type: Boolean },
+    blockchainAddress: { type: String },
+    privateKey: { type: String } , // Store encrypted in production
     createdOn: { type: Date, default: Date.now }
 });
 

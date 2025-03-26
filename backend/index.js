@@ -1,11 +1,12 @@
 require("dotenv").config();
-const http = require('http');
-const express = require('express');
-const WebSocket = require('ws');
-const cors = require('cors');
-const mongoose = require('mongoose');
+const http = require("http");
+const express = require("express");
+const WebSocket = require("ws");
+const cors = require("cors");
+const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const { authenticateToken } = require("./utilites");
+const { ethers } = require("ethers");
 
 // Load configuration and models
 const config = require("./config.json");
@@ -25,38 +26,61 @@ const wss = new WebSocket.Server({ server });
 // In-memory storage for WebSocket messages
 const wsDataStore = [];
 
-// WebSocket server logic
-wss.on('connection', (ws) => {
-  console.log('Client connected');
-
-  // Handle incoming messages from WebSocket clients
-  ws.on('message', (message) => {
+// WebSocket server logic with corrected template literals
+wss.on("connection", (ws) => {
+  console.log("Client connected");
+  ws.on("message", (message) => {
     console.log(`Received: ${message}`);
-
-    // Store the message in the in-memory data store
     wsDataStore.push(message.toString());
-
-    // Echo the message back to the client
-    ws.send(`Echo: ${message}`);
+    ws.send(`Echo: ${message} `);
   });
-
-  // Handle client disconnection
-  ws.on('close', () => {
-    console.log('Client disconnected');
+  ws.on("close", () => {
+    console.log("Client disconnected");
   });
 });
 
 // Middleware for HTTP server
-app.use(express.json()); // Parse JSON bodies
-app.use(cors({ origin: "*" })); // Enable CORS for all origins
+app.use(express.json());
+app.use(cors({ origin: "*" }));
 
+// Blockchain configuration
+const blockchainConfig = {
+  rpcUrl: "http://192.168.137.186:8545", // Replace with actual IP if needed
+  contractAddress: "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f", // Your deployed contract address (update if needed)
+  contractABI: [
+    "function registerUser(string memory, uint256, uint256) public",
+    "function tradeEnergy(address, uint256) public",
+    "function getUserDetails(address) public view returns (string memory, uint256, uint256, uint256)",
+    "function updateUserDetails(uint256, uint256) public",
+    "event TradeCompleted(address indexed sender, address indexed receiver, uint256 totalCost, uint256 chargeTransferred)"
+  ],
+};
+
+// Load Hardhat accounts from environment variable
+const HARDHAT_ACCOUNTS = JSON.parse(process.env.HARDHAT_ACCOUNTS);
+let availableAccounts = [...HARDHAT_ACCOUNTS];
+
+// Middleware to assign a blockchain account
+const assignBlockchainAccount = async (req, res, next) => {
+  if (availableAccounts.length === 0) {
+    return res.status(500).json({
+      error: true,
+      message: "No available blockchain accounts",
+    });
+  }
+  req.assignedAccount = availableAccounts.pop();
+  next();
+};
+
+// ----------------------
 // HTTP Routes
+// ----------------------
 
 // Root route to display WebSocket data
 app.get("/", (req, res) => {
   res.json({
     message: "Welcome to the server!",
-    wsData: wsDataStore, // Send the stored WebSocket data
+    wsData: wsDataStore,
   });
 });
 
@@ -64,42 +88,55 @@ app.get("/", (req, res) => {
 app.get("/get-ws-data", (req, res) => {
   res.json({
     error: false,
-    wsData: wsDataStore, // Send the stored WebSocket data
+    wsData: wsDataStore,
     message: "WebSocket data fetched successfully",
   });
 });
 
 // Create account route
-app.post("/create-account", async (req, res) => {
+app.post("/create-account", assignBlockchainAccount, async (req, res) => {
   const { fullName, email, password, seller } = req.body;
 
-  // Validate input
-  if (!fullName) {
-    return res.status(400).json({ error: true, message: "Full Name is required" });
-  }
-  if (!email) {
-    return res.status(400).json({ error: true, message: "Email is required" });
-  }
-  if (!password) {
-    return res.status(400).json({ error: true, message: "Password is required" });
+  if (!fullName || !email || !password) {
+    return res.status(400).json({ error: true, message: "Full Name, Email, and Password are required" });
   }
 
   // Check if user already exists
-  const isUser = await User.findOne({ email: email });
+  const isUser = await User.findOne({ email });
   if (isUser) {
     return res.json({ error: true, message: "User already exists" });
   }
 
-  // Create new user
-  const user = new User({ fullName, email, password, seller });
+  // Create new user with assigned blockchain account
+  const user = new User({
+    fullName,
+    email,
+    password,
+    seller,
+    blockchainAddress: req.assignedAccount.account, // Corrected here
+    privateKey: req.assignedAccount.privateKey, // And here
+  });
   await user.save();
 
-  // Generate JWT token
-  const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "36000m",
-  });
+  // Interact with blockchain
+  const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+  const wallet = new ethers.Wallet(user.privateKey, provider);
+  const contract = new ethers.Contract(blockchainConfig.contractAddress, blockchainConfig.contractABI, wallet);
 
-  // Return success response
+  // Set default values for initial registration on-chain (could be updated later)
+  const initialCharge = 50;
+  const initialPrice = 0;
+
+  try {
+    const tx = await contract.registerUser(fullName, initialCharge, initialPrice);
+    await tx.wait();
+  } catch (error) {
+    console.error("Blockchain registration error:", error);
+    return res.status(500).json({ error: true, message: "Failed to register user on blockchain", details: error.message });
+  }
+
+  // Generate JWT token
+  const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "36000m" });
   return res.json({
     error: false,
     user,
@@ -111,39 +148,22 @@ app.post("/create-account", async (req, res) => {
 // Login route
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
-  // Validate input
-  if (!email) {
-    return res.status(400).json({ error: true, message: "Email is required" });
+  if (!email || !password) {
+    return res.status(400).json({ error: true, message: "Email and Password are required" });
   }
-  if (!password) {
-    return res.status(400).json({ error: true, message: "Password is required" });
-  }
-
-  // Find user in the database
-  const userInfo = await User.findOne({ email: email });
+  const userInfo = await User.findOne({ email });
   if (!userInfo) {
     return res.status(400).json({ error: true, message: "User does not exist" });
   }
-
-  // Validate credentials
   if (userInfo.email === email && userInfo.password === password) {
     const user = { user: userInfo };
-    const fullName = userInfo.fullName;
-    const seller = userInfo.seller;
-
-    // Generate JWT token
-    const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "36000m",
-    });
-
-    // Return success response
+    const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "36000m" });
     return res.json({
       error: false,
       message: "Logged in successfully",
       email,
-      fullName,
-      seller,
+      fullName: userInfo.fullName,
+      seller: userInfo.seller,
       accessToken,
     });
   } else {
@@ -154,39 +174,32 @@ app.post("/login", async (req, res) => {
 // Add seller form route
 app.post("/addSellerForm", authenticateToken, async (req, res) => {
   const { fullName, email, price, powerToBeTransForm, currentStateOfCharge, unitNo } = req.body;
-
-  // Validate input
-  if (!fullName) {
-    return res.status(400).json({ error: true, message: "FullName is required" });
-  }
-  if (!email) {
-    return res.status(400).json({ error: true, message: "Email is required" });
-  }
-  if (!price) {
-    return res.status(400).json({ error: true, message: "Price is required" });
-  }
-  if (!powerToBeTransForm) {
-    return res.status(400).json({ error: true, message: "Power To Be TransForm is required" });
-  }
-  if (!currentStateOfCharge) {
-    return res.status(400).json({ error: true, message: "Current State Of Charge is required" });
-  }
-  if (!unitNo) {
-    return res.status(400).json({ error: true, message: "Unit Number is required" });
+  if (!fullName || !email || !price || !powerToBeTransForm || !currentStateOfCharge || !unitNo) {
+    return res.status(400).json({ error: true, message: "All fields are required" });
   }
 
   try {
-    // Find user in the database
-    const userInfo = await User.findOne({ email: email });
+    const userInfo = await User.findOne({ email });
     if (!userInfo) {
       return res.status(404).json({ error: true, message: "User not found" });
     }
-
-    // Update user as a seller
     userInfo.seller = true;
     await userInfo.save();
 
-    // Create new seller
+    // Update blockchain with seller details by updating user's on-chain details
+    const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+    const wallet = new ethers.Wallet(userInfo.privateKey, provider);
+    const contract = new ethers.Contract(blockchainConfig.contractAddress, blockchainConfig.contractABI, wallet);
+    const charge = parseInt(powerToBeTransForm);
+    const priceValue = parseInt(price);
+    try {
+      const tx = await contract.updateUserDetails(charge, priceValue);
+      await tx.wait();
+    } catch (error) {
+      console.error("Blockchain update error:", error);
+      return res.status(500).json({ error: true, message: "Blockchain update failed", details: error.message });
+    }
+
     const seller = new Seller({
       fullName,
       email,
@@ -194,17 +207,13 @@ app.post("/addSellerForm", authenticateToken, async (req, res) => {
       powerToBeTransForm,
       currentStateOfCharge,
       unitNo,
+      blockchainAddress: userInfo.blockchainAddress
     });
     await seller.save();
 
-    // Return success response
-    return res.json({
-      error: false,
-      seller,
-      message: "Seller added successfully",
-    });
+    return res.json({ error: false, seller, message: "Seller added successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Seller registration error:", error);
     return res.status(500).json({ error: true, message: "Internal server error" });
   }
 });
@@ -212,32 +221,20 @@ app.post("/addSellerForm", authenticateToken, async (req, res) => {
 // Get sellers route
 app.get("/getSellers", authenticateToken, async (req, res) => {
   try {
-    // Fetch all sellers from the database
     const sellers = await Seller.find({});
-
-    // Return the list of sellers
-    return res.json({
-      error: false,
-      sellers,
-      message: "Sellers fetched successfully",
-    });
+    return res.json({ error: false, sellers, message: "Sellers fetched successfully" });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
-      error: true,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ error: true, message: "Internal server error" });
   }
 });
 
 // Get current user
 app.get("/current-user", authenticateToken, async (req, res) => {
   try {
-    const user = req.user.user; // From JWT
+    const user = req.user.user;
     const userData = await User.findOne({ email: user.email });
-    if (!userData) {
-      return res.status(404).json({ error: true, message: "User not found" });
-    }
+    if (!userData) return res.status(404).json({ error: true, message: "User not found" });
     return res.json({ error: false, user: userData });
   } catch (error) {
     console.error(error);
@@ -249,9 +246,7 @@ app.get("/current-user", authenticateToken, async (req, res) => {
 app.get("/seller-by-email/:email", authenticateToken, async (req, res) => {
   try {
     const seller = await Seller.findOne({ email: req.params.email });
-    if (!seller) {
-      return res.status(404).json({ error: true, message: "Seller not found" });
-    }
+    if (!seller) return res.status(404).json({ error: true, message: "Seller not found" });
     return res.json({ error: false, seller });
   } catch (error) {
     console.error(error);
@@ -263,37 +258,114 @@ app.get("/seller-by-email/:email", authenticateToken, async (req, res) => {
 app.put("/update-seller/:email", authenticateToken, async (req, res) => {
   try {
     const { fullName, price, powerToBeTransForm, currentStateOfCharge, unitNo } = req.body;
-
     const updatedSeller = await Seller.findOneAndUpdate(
       { email: req.params.email },
-      {
-        fullName,
-        price,
-        powerToBeTransForm,
-        currentStateOfCharge,
-        unitNo,
-      },
+      { fullName, price, powerToBeTransForm, currentStateOfCharge, unitNo },
       { new: true, runValidators: true }
     );
-
     if (!updatedSeller) {
       return res.status(404).json({ error: true, message: "Seller not found" });
     }
-
-    return res.json({
-      error: false,
-      seller: updatedSeller,
-      message: "Seller updated successfully",
-    });
+    return res.json({ error: false, seller: updatedSeller, message: "Seller updated successfully" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: true, message: "Internal server error" });
   }
 });
 
-// Start the server on port 8000
+// Trade route using blockchain interaction
+app.post("/trade", authenticateToken, async (req, res) => {
+  try {
+    const { sellerEmail, amount } = req.body;
+    const buyerEmail = req.user.user.email;
+
+    // Get buyer details
+    const buyer = await User.findOne({ email: buyerEmail });
+    if (!buyer) return res.status(404).json({ error: true, message: "Buyer not found" });
+
+    // Get seller details
+    const seller = await Seller.findOne({ email: sellerEmail });
+    if (!seller) return res.status(404).json({ error: true, message: "Seller not found" });
+
+    // Check that seller blockchain address exists
+    if (!seller.blockchainAddress) {
+      return res.status(400).json({ error: true, message: "Seller's blockchain address not found" });
+    }
+
+    // Connect to blockchain node
+    const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+    const wallet = new ethers.Wallet(buyer.privateKey, provider);
+    const contract = new ethers.Contract(blockchainConfig.contractAddress, blockchainConfig.contractABI, wallet);
+
+    // Execute trade on blockchain
+    const tx = await contract.tradeEnergy(seller.blockchainAddress, amount);
+    const receipt = await tx.wait();
+
+    res.json({
+      error: false,
+      message: "Trade successful",
+      transactionHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+    });
+  } catch (error) {
+    console.error("Trade error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+// Admin routes for account monitoring and resetting
+app.get("/admin/accounts", authenticateToken, (req, res) => {
+  res.json({
+    total: HARDHAT_ACCOUNTS.length,
+    available: availableAccounts.length,
+    used: HARDHAT_ACCOUNTS.length - availableAccounts.length,
+  });
+});
+
+app.post("/admin/reset-accounts", authenticateToken, (req, res) => {
+  availableAccounts = [...HARDHAT_ACCOUNTS];
+  res.json({ message: "Account pool reset" });
+});
+
+// -------------------------
+// Contract Event Listener
+// -------------------------
+
+// Create a read-only contract instance for event listening
+const eventProvider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+const eventContract = new ethers.Contract(
+  blockchainConfig.contractAddress,
+  blockchainConfig.contractABI,
+  eventProvider
+);
+
+// Listen for TradeCompleted events
+eventContract.on("TradeCompleted", (sender, receiver, totalCost, chargeTransferred, event) => {
+  console.log("Trade Completed!");
+  console.log("Sender:", sender);
+  console.log("Receiver:", receiver);
+  console.log("Total Cost:", totalCost.toString());
+  console.log("Charge Transferred:", chargeTransferred.toString());
+  
+  // Fetch and log updated details for sender and receiver
+  updateBalances(sender);
+  updateBalances(receiver);
+});
+
+async function updateBalances(userAddress) {
+  try {
+    const details = await eventContract.getUserDetails(userAddress);
+    console.log(`Updated details for ${userAddress}: `, details);
+  } catch (err) {
+    console.error("Error fetching updated details for", userAddress, ":", err.message);
+  }
+}
+
+// -------------------------
+// Start HTTP and WebSocket Servers on port 8000
+// -------------------------
 server.listen(8000, () => {
-  console.log('HTTP and WebSocket servers are running on ws://localhost:8000');
+  console.log("HTTP and WebSocket servers are running on ws://localhost:8000");
 });
 
 module.exports = app;

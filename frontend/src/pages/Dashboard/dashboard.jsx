@@ -10,6 +10,7 @@ const Dashboard = () => {
   const [sellers, setSellers] = useState([]);
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [chargeAmount, setChargeAmount] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +39,23 @@ const Dashboard = () => {
   const handleSellerClick = (seller) => {
     setSelectedSeller(seller);
     setIsModalOpen(true);
+  };
+
+  const handleBuy = async () => {
+    try {
+
+      const response = await axoisInstance.post("/trade", {
+        sellerEmail: selectedSeller.email,
+        amount: selectedSeller.price
+      });
+
+      alert(`Trade successful! TX Hash: ${response.data.transactionHash}`);
+      setIsModalOpen(false);
+      setChargeAmount("");
+    } catch (error) {
+      console.error("Trade failed:", error);
+      alert("Trade failed: " + (error.response?.data?.message || error.message));
+    }
   };
 
   return (
@@ -132,6 +150,7 @@ const Dashboard = () => {
             <Button
               variant="contained"
               sx={{ bgcolor: "#00AAFF", color: "white" }}
+              onClick={handleBuy}
             >
               BUY
             </Button>
