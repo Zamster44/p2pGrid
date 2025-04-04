@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract SecureEnergyTrading {
+    struct User {
+        string name;
+        uint256 balance;
+        uint256 chargeLevel; // Energy available (e.g., in kWh)
+        uint256 pricePerUnit; // Cost per unit
+    }
+
+    mapping(address => User) public users;
+
+    event UserRegistered(address indexed user, string name, uint256 charge, uint256 pricePerUnit);
+    event UserAlreadyRegistered(address indexed user, string name);
+    event TradeCompleted(address sender, address receiver, uint256 totalCost, uint256 chargeTransferred);
+
+    // Register a new user; if already registered, do nothing (or emit an event)
+    function registerUser(string memory _name, uint256 _charge, uint256 _pricePerUnit) public {
+        if (bytes(users[msg.sender].name).length > 0) {
+            emit UserAlreadyRegistered(msg.sender, users[msg.sender].name);
+            return; // Simply return if the user is already registered
+        }
+        users[msg.sender] = User(_name, 1000, _charge, _pricePerUnit);
+        emit UserRegistered(msg.sender, _name, _charge, _pricePerUnit);
+    }
+
+    function tradeEnergy(address _receiver, uint256 _chargeTransferred) public {
+        User storage sender = users[msg.sender];
+        User storage receiver = users[_receiver];
+
+        require(bytes(sender.name).length > 0, "Sender not registered!");
+        require(bytes(receiver.name).length > 0, "Receiver not registered!");
+        require(sender.chargeLevel >= _chargeTransferred, "Not enough charge!");
+
+        uint256 totalCost = _chargeTransferred * sender.pricePerUnit;
+        require(sender.balance >= totalCost, "Not enough balance!");
+
+        // (Optional) Check that receiver's battery won't exceed max capacity (example: 100 kWh)
+        require(receiver.chargeLevel + _chargeTransferred <= 100, "Receiver capacity exceeded!");
+
+        sender.chargeLevel -= _chargeTransferred;
+        receiver.chargeLevel += _chargeTransferred;
+        sender.balance -= totalCost;
+        receiver.balance += totalCost;
+
+        emit TradeCompleted(msg.sender, _receiver, totalCost, _chargeTransferred);
+    }
+
+    function getUserDetails(address _user) public view returns (string memory, uint256, uint256, uint256) {
+        require(bytes(users[_user].name).length > 0, "User not registered!");
+        User memory u = users[_user];
+        return (u.name, u.balance, u.chargeLevel, u.pricePerUnit);
+    }
+    // Add this function to your SecureEnergyTrading contract
+    function updateUserDetails(uint256 _charge, uint256 _pricePerUnit) public {
+    require(bytes(users[msg.sender].name).length > 0, "User not registered!");
+    users[msg.sender].chargeLevel = _charge;
+    users[msg.sender].pricePerUnit = _pricePerUnit;
+}
+}
+
+
+

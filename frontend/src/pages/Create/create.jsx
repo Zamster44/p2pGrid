@@ -32,7 +32,8 @@ const create = () => {
         fullName: name,
         email: email,
         password: password,
-        seller : false,
+        espId : espId,
+        seller: false,
       });
 
       if (response.data && response.data.error) {
@@ -61,13 +62,13 @@ const create = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [espId, setEspId] = useState("");
   const [error, setError] = useState(null);
   return (
     <div className="min-h-screen flex flex-col items-center justify-center ">
       <form onSubmit={handleSignup}>
         <div className=" flex flex-col items-center justify-center">
-          <div className="text-[#00AAFF] text-6xl m-6">CREATE AN ACCOUNT</div>
-
+          <div className="text-[#00AAFF] text-6xl m-4">CREATE AN ACCOUNT</div>
           <div className="m-5">
             <div className="text-lg">Name</div>
             <input
@@ -78,7 +79,6 @@ const create = () => {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-
           <div className=" m-5">
             <div className="text-lg">Email</div>
             <input
@@ -89,7 +89,16 @@ const create = () => {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-
+          <div className="m-5">
+            <div className="text-lg">Esp Device Id</div>
+            <input
+              className="border border-black rounded-md w-80 p-1"
+              type="text"
+              placeholder="Id"
+              value={espId}
+              onChange={(e) => setEspId(e.target.value)}
+            />
+          </div>
           <div className=" m-5">
             <div className="text-lg">Password</div>
             <input

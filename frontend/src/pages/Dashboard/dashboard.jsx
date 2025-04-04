@@ -111,7 +111,7 @@ const Dashboard = () => {
                     {seller.fullName}
                   </button>
                 </th>
-                <td className="px-6 py-4">{seller.price} Unit/Rupee</td>
+                <td className="px-6 py-4">{seller.price} WH/Rupee</td>
               </tr>
             ))}
           </tbody>
@@ -141,7 +141,7 @@ const Dashboard = () => {
                 <b>NAME:</b> {selectedSeller.fullName}
               </Typography>
               <Typography sx={{ mb: 3 }}>
-                <b>PRICE:</b> {selectedSeller.price} UNIT/RUPEE
+                <b>PRICE:</b> {selectedSeller.price} WH/RUPEE
               </Typography>
             </>
           )}

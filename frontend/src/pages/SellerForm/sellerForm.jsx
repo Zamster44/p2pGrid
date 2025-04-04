@@ -13,9 +13,9 @@ const SellerForm = () => {
     fullName: "",
     email: "",
     price: "",
-    powerToBeTransform: "",
+    espId: "",
     currentStateOfCharge: "",
-    unitNo: ""
+    energyQuota: ""
   });
 
   const [error, setError] = useState(null);
@@ -56,9 +56,9 @@ const SellerForm = () => {
           fullName: seller.fullName,
           email: seller.email,
           price: seller.price,
-          powerToBeTransform: seller.powerToBeTransForm,
+          espId: seller.espId,
           currentStateOfCharge: seller.currentStateOfCharge,
-          unitNo: seller.unitNo
+          energyQuota: seller.energyQuota
         });
       }
     } catch (error) {
@@ -93,15 +93,15 @@ const SellerForm = () => {
       setError("Please enter Price");
       return;
     }
-    if (!formData.powerToBeTransform) {
-      setError("Please enter Power To Be Transform");
+    if (!formData.espId) {
+      setError("Please enter Your Esp Id");
       return;
     }
     if (!formData.currentStateOfCharge) {
       setError("Please enter Current State Of Charge");
       return;
     }
-    if (!formData.unitNo) {
+    if (!formData.energyQuota) {
       setError("Please enter Unit Number");
       return;
     }
@@ -113,9 +113,9 @@ const SellerForm = () => {
         await axoisInstance.put(`/update-seller/${formData.email}`, {
           fullName: formData.fullName,
           price: formData.price,
-          powerToBeTransForm: formData.powerToBeTransform,
+          espId: formData.espId,
           currentStateOfCharge: formData.currentStateOfCharge,
-          unitNo: formData.unitNo
+          energyQuota: formData.energyQuota
         });
       } else {
         // Create new seller
@@ -123,9 +123,9 @@ const SellerForm = () => {
           email: formData.email,
           fullName: formData.fullName,
           price: formData.price,
-          powerToBeTransForm: formData.powerToBeTransform,
+          espId: formData.espId,
           currentStateOfCharge: formData.currentStateOfCharge,
-          unitNo: formData.unitNo
+          energyQuota: formData.energyQuota
         });
       }
       navigate("/dashboard");
@@ -174,13 +174,13 @@ const SellerForm = () => {
             </div>
 
             <div className="m-5">
-              <div className="text-lg">Power To Be Transform</div>
+              <div className="text-lg">Esp Id</div>
               <input
                 className="border border-black rounded-md w-80 p-1"
                 type="text"
-                name="powerToBeTransform"
-                placeholder="Power To Be Transform"
-                value={formData.powerToBeTransform}
+                name="espId"
+                placeholder="Id"
+                value={formData.espId}
                 onChange={handleChange}
               />
             </div>
@@ -212,13 +212,13 @@ const SellerForm = () => {
             </div>
 
             <div className="m-5">
-              <div className="text-lg">Unit No.</div>
+              <div className="text-lg">Energy Quota</div>
               <input
                 className="border border-black rounded-md w-80 p-1"
                 type="text"
-                name="unitNo"
-                placeholder="Unit Number"
-                value={formData.unitNo}
+                name="energyQuota"
+                placeholder="Energy Quota"
+                value={formData.energyQuota}
                 onChange={handleChange}
               />
             </div>

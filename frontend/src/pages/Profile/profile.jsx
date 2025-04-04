@@ -1,24 +1,51 @@
 import React, { useState, useEffect } from "react";
-import { jwtDecode } from "jwt-decode"; // Correct import
 
 const Profile = () => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (token) {
+    const fetchUserData = async () => {
       try {
-        const decoded = jwtDecode(token); // Decode JWT correctly
-        setUser(decoded.user); // Extract user data
-      } catch (error) {
-        console.error("Invalid token:", error);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
+
+        const response = await fetch("http://localhost:8000/current-user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.error) {
+          throw new Error(data.message);
+        }
+
+        setUser(data.user);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchUserData();
   }, []);
 
-  if (!user) {
+  if (loading) {
     return <div className="flex justify-center p-2 text-xl text-[#00AAFF]">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="flex justify-center p-2 text-xl text-red-500">Error: {error}</div>;
   }
 
   return (
@@ -38,8 +65,7 @@ const Profile = () => {
         <div className="flex p-2 text-xl text-[#00AAFF]">Wallet</div>
         <hr className="border-t-1 border-black mx-2 mr-[500px]" />
         <div className="flex gap-80 p-2 text-base">
-          <div>Balance: 1000</div>
-          <div className="text-[#00AAFF]">+ADD MONEY</div>
+          <div>Balance: {user.balance}</div>
         </div>
       </div>
     </div>
