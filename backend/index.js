@@ -28,6 +28,7 @@ const wss = new WebSocket.Server({ server });
 // Create a WebSocket server by passing the HTTP server
 const espConnections = new Map(); // Map<espId, WebSocket>
 const activeTransfers = new Map();
+const dashboardSubscriptions = new Map(); 
 
 // Enhanced WebSocket logging
 wss.on("connection", (ws, req) => {
@@ -41,6 +42,25 @@ wss.on("connection", (ws, req) => {
 
       const data = JSON.parse(rawMessage);
       console.log("📦 Parsed Message:".blue, JSON.stringify(data, null, 2));
+
+        // Handle dashboard subscriptions
+        if (data.type === 'subscribe' && data.espId) {
+          if (!dashboardSubscriptions.has(data.espId)) {
+            dashboardSubscriptions.set(data.espId, []);
+          }
+          dashboardSubscriptions.get(data.espId).push(ws);
+          console.log(`👥 Dashboard subscribed to ${data.espId}`);
+          return;
+        }
+  
+        if (data.type === 'unsubscribe' && data.espId) {
+          if (dashboardSubscriptions.has(data.espId)) {
+            dashboardSubscriptions.set(data.espId, 
+              dashboardSubscriptions.get(data.espId).filter(client => client !== ws)
+            );
+          }
+          return;
+        }
 
       // Handle warnings first
       if (data.warning) {
@@ -132,6 +152,21 @@ async function handleEnergyData(deviceId, data) {
       .yellow
   );
 
+  if (dashboardSubscriptions.has(deviceId)) {
+    const message = JSON.stringify({
+      type: 'energyUpdate',
+      deviceId,
+      energy: data.energy,
+      target: transfer.target
+    });
+    
+    dashboardSubscriptions.get(deviceId).forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  }
+
   if (transfer.accumulated >= transfer.target) {
     console.log(`🎯 Target Reached for ${deviceId}`.green.bold);
     await finalizeTransfer(deviceId, transfer);
@@ -188,6 +223,23 @@ async function finalizeTransfer(deviceId, transfer) {
   }
 }
 
+function cleanupConnections(closedWs) {
+  // Remove from espConnections
+  for (const [deviceId, ws] of espConnections) {
+    if (ws === closedWs) {
+      espConnections.delete(deviceId);
+      console.log(`🧹 Cleaned up connection for ${deviceId}`.magenta);
+
+      // Cleanup any active transfers for this device
+      if (activeTransfers.has(deviceId)) {
+        clearTimeout(activeTransfers.get(deviceId).timeout);
+        activeTransfers.delete(deviceId);
+        console.log(`🧹 Cleaned up active transfer for ${deviceId}`.magenta);
+      }
+    }
+  }
+}
+
 // Middleware for HTTP server
 app.use(express.json());
 app.use(cors({ origin: "*" }));
@@ -195,13 +247,13 @@ app.use(cors({ origin: "*" }));
 // Blockchain configuration
 const blockchainConfig = {
   rpcUrl: "http://192.168.231.210:8545", // Replace with actual IP if needed
-  contractAddress: "0xC92B72ecf468D2642992b195bea99F9B9BB4A838", // Your deployed contract address (update if needed)
+  contractAddress: "0xb09da8a5B236fE0295A345035287e80bb0008290", // Your deployed contract address (update if needed)
   contractABI: [
-    "function registerUser(string memory, uint256, uint256) public",
+    "function registerUser(string, uint256, uint256) public",
     "function tradeEnergy(address, uint256, uint256) public",
-    "function getUserDetails(address) public view returns (string memory, uint256, uint256, uint256)",
+    "function getUserDetails(address) public view returns (string, uint256, uint256, uint256)",
     "function updateUserDetails(uint256, uint256) public",
-    "event UserRegistered(string memory, uint256 charge, uint256 pricePerUnit)",
+    "event UserRegistered(address indexed user, string name, uint256 charge, uint256 pricePerUnit)",
     "event UserAlreadyRegistered(address indexed user, string name)",
     "event TradeCompleted(address indexed sender, address indexed receiver, uint256 totalCost, uint256 chargeTransferred, uint256 stateOfCharge)"
   ],
@@ -487,14 +539,40 @@ app.put("/update-seller/:email", authenticateToken, async (req, res) => {
   try {
     const { fullName, price, espId, currentStateOfCharge, energyQuota } =
       req.body;
+
     const updatedSeller = await Seller.findOneAndUpdate(
       { email: req.params.email },
       { fullName, price, espId, currentStateOfCharge, energyQuota },
       { new: true, runValidators: true }
     );
+
     if (!updatedSeller) {
       return res.status(404).json({ error: true, message: "Seller not found" });
     }
+
+    // Update blockchain with seller details by updating user's on-chain details
+    const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+    const wallet = new ethers.Wallet(updatedSeller.privateKey, provider);
+    const contract = new ethers.Contract(
+      blockchainConfig.contractAddress,
+      blockchainConfig.contractABI,
+      wallet
+    );
+    const charge = parseInt(currentStateOfCharge);
+    const priceValue = parseInt(price);
+
+    try {
+      const tx = await contract.updateUserDetails(charge, priceValue);
+      await tx.wait();
+    } catch (error) {
+      console.error("Blockchain update error:", error);
+      return res.status(500).json({
+        error: true,
+        message: "Blockchain update failed",
+        details: error.message,
+      });
+    }
+
     return res.json({
       error: false,
       seller: updatedSeller,
