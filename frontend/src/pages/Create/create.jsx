@@ -3,123 +3,176 @@ import { Link, useNavigate } from "react-router-dom";
 import { validateEmail } from "../../utils/helper";
 import axoisInstance from "../../utils/axoisInstance";
 
-const create = () => {
+const Create = () => {
   const navigate = useNavigate();
-
-  const handleSignup = async (e) => {
-    e.preventDefault();
-
-    if (!name) {
-      setError("Please enter Name");
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email");
-      return;
-    }
-
-    if (!password) {
-      setError("Please enter password");
-      return;
-    }
-
-    setError("");
-
-    //api
-    try {
-      const response = await axoisInstance.post("/create-account", {
-        fullName: name,
-        email: email,
-        password: password,
-        espId : espId,
-        seller: false,
-      });
-
-      if (response.data && response.data.error) {
-        setError(response.data.message);
-        return;
-      }
-
-      if (response.data && response.data.accessToken) {
-        localStorage.setItem("token", response.data.accessToken);
-        localStorage.setItem("user", JSON.stringify(response.data));
-        navigate("/dashboard");
-      }
-    } catch (error) {
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        setError(error.response.data.message);
-      } else {
-        setError("An unexpected error occured");
-      }
-    }
-  };
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [espId, setEspId] = useState("");
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    if (!name) {
+      setError("Please enter Name");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!espId) {
+      setError("Please enter ESP ID");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter password");
+      setIsLoading(false);
+      return;
+    }
+
+    setError("");
+
+    try {
+      const response = await axoisInstance.post("/create-account", {
+        fullName: name,
+        email: email,
+        password: password,
+        espId: espId,
+        seller: false,
+      });
+
+      if (response.data?.error) {
+        setError(response.data.message);
+        return;
+      }
+
+      if (response.data?.accessToken) {
+        localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("user", JSON.stringify(response.data));
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "An unexpected error occurred"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center ">
-      <form onSubmit={handleSignup}>
-        <div className=" flex flex-col items-center justify-center">
-          <div className="text-[#00AAFF] text-6xl m-4">CREATE AN ACCOUNT</div>
-          <div className="m-5">
-            <div className="text-lg">Name</div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <form 
+        onSubmit={handleSignup}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 space-y-6"
+      >
+        <h1 className="text-3xl font-bold text-center text-[#00AAFF] mb-6">
+          Create Account
+        </h1>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Name
+            </label>
             <input
-              className="border border-black rounded-md w-80 p-1"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
               type="text"
-              placeholder="Name"
+              placeholder="Enter your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className=" m-5">
-            <div className="text-lg">Email</div>
-            <input
-              className="border border-black rounded-md w-80 p-1"
-              type="text"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="m-5">
-            <div className="text-lg">Esp Device Id</div>
-            <input
-              className="border border-black rounded-md w-80 p-1"
-              type="text"
-              placeholder="Id"
-              value={espId}
-              onChange={(e) => setEspId(e.target.value)}
-            />
-          </div>
-          <div className=" m-5">
-            <div className="text-lg">Password</div>
-            <input
-              className="border border-black rounded-md w-80 p-1"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-              }}
-              type="password"
-              placeholder="Password"
+              disabled={isLoading}
             />
           </div>
 
-          <button className="mt-5 w-80 h-10 bg-[#00AAFF] text-white rounded-md">
-            Create
-          </button>
-          {error && <p className="text-red-500 text-base mt-5 ">{error}</p>}
+          <div>
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Email
+            </label>
+            <input
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              ESP Device ID
+            </label>
+            <input
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+              type="text"
+              placeholder="Enter device ID"
+              value={espId}
+              onChange={(e) => setEspId(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Password
+            </label>
+            <input
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
         </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all ${
+            isLoading 
+              ? 'bg-[#00AAFF]/70 cursor-not-allowed'
+              : 'bg-[#00AAFF] hover:bg-[#0095e0]'
+          }`}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Creating Account...
+            </div>
+          ) : (
+            'Create Account'
+          )}
+        </button>
+
+        {error && (
+          <p className="text-red-500 text-sm text-center mt-4">{error}</p>
+        )}
+
+        <p className="text-center text-sm text-gray-600">
+          Already have an account?{" "}
+          <Link
+            to="/"
+            className="text-[#00AAFF] hover:text-[#0095e0] font-semibold"
+          >
+            Login
+          </Link>
+        </p>
       </form>
     </div>
   );
 };
 
-export default create;
+export default Create;

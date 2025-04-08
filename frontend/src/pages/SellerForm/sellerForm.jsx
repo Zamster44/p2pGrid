@@ -102,7 +102,7 @@ const SellerForm = () => {
       return;
     }
     if (!formData.energyQuota) {
-      setError("Please enter Unit Number");
+      setError("Please enter Energy Quota");
       return;
     }
 
@@ -137,108 +137,140 @@ const SellerForm = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return <div className="flex justify-center items-center h-screen bg-gray-50 text-[#00AAFF] text-3xl font-bold">Loading...</div>;
   }
 
   return (
-    <div>
-      <div className="flex justify-center p-2 text-xl text-[#00AAFF]">
-        {isEditMode ? "Edit Seller Form" : "Seller Form"}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-8">
+        <h1 className="text-3xl font-bold text-[#00AAFF] text-center mb-8">
+          {isEditMode ? "Update Seller Profile" : "Become an Energy Seller"}
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Left Column */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  Full Name
+                </label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+                  type="text"
+                  name="fullName"
+                  placeholder="Enter your full name"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  Price (WH/Rupee)
+                </label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+                  type="text"
+                  name="price"
+                  placeholder="Enter price per unit"
+                  value={formData.price}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  ESP Device ID
+                </label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+                  type="text"
+                  name="espId"
+                  placeholder="Enter device ID"
+                  value={formData.espId}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  Email
+                </label>
+                <input
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all ${
+                    isEditMode ? "bg-gray-100" : ""
+                  }`}
+                  type="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  readOnly={isEditMode}
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  State of Charge (%)
+                </label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+                  type="text"
+                  name="currentStateOfCharge"
+                  placeholder="Enter current charge state"
+                  value={formData.currentStateOfCharge}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  Energy Quota (WH)
+                </label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00AAFF] focus:border-transparent transition-all"
+                  type="text"
+                  name="energyQuota"
+                  placeholder="Enter energy quota"
+                  value={formData.energyQuota}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all ${
+                isLoading
+                  ? "bg-[#00AAFF]/70 cursor-not-allowed"
+                  : "bg-[#00AAFF] hover:bg-[#0095e0]"
+              }`}
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {isEditMode ? "Updating..." : "Submitting..."}
+                </div>
+              ) : isEditMode ? (
+                "Update Profile"
+              ) : (
+                "Become a Seller"
+              )}
+            </button>
+
+            {error && (
+              <p className="text-red-500 text-sm text-center mt-4">{error}</p>
+            )}
+          </div>
+        </form>
       </div>
-      <hr className="border-t-1 border-black mx-2" />
-      <form onSubmit={handleSubmit}>
-        <div className="flex justify-center gap-20 mt-10">
-          <div className="flex flex-col gap-3">
-            <div className="m-5">
-              <div className="text-lg">Name</div>
-              <input
-                className="border border-black rounded-md w-80 p-1"
-                type="text"
-                name="fullName"
-                placeholder="Name"
-                value={formData.fullName}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="m-5">
-              <div className="text-lg">Price</div>
-              <input
-                className="border border-black rounded-md w-80 p-1"
-                type="text"
-                name="price"
-                placeholder="Price"
-                value={formData.price}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="m-5">
-              <div className="text-lg">Esp Id</div>
-              <input
-                className="border border-black rounded-md w-80 p-1"
-                type="text"
-                name="espId"
-                placeholder="Id"
-                value={formData.espId}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div className="m-5">
-              <div className="text-lg">Email</div>
-              <input
-                className={`border border-black rounded-md w-80 p-1 ${isEditMode ? "bg-gray-200" : ""}`}
-                type="text"
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-                readOnly={isEditMode}
-              />
-            </div>
-            <div className="m-5">
-              <div className="text-lg">Current State Of Charge</div>
-              <input
-                className="border border-black rounded-md w-80 p-1"
-                type="text"
-                name="currentStateOfCharge"
-                placeholder="Current State Of Charge"
-                value={formData.currentStateOfCharge}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="m-5">
-              <div className="text-lg">Energy Quota</div>
-              <input
-                className="border border-black rounded-md w-80 p-1"
-                type="text"
-                name="energyQuota"
-                placeholder="Energy Quota"
-                value={formData.energyQuota}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-center items-center mt-20">
-          <button 
-            className="w-80 h-10 bg-[#00AAFF] text-white rounded-md"
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? "Processing..." : isEditMode ? "Update" : "Submit"}
-          </button>
-        </div>
-        {error && (
-          <div className="flex justify-center items-center">
-            <p className="text-red-500 text-base mt-5 mx-auto">{error}</p>
-          </div>
-        )}
-      </form>
     </div>
   );
 };

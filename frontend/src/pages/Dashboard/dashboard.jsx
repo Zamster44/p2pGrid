@@ -164,75 +164,122 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
-      {/* Profile Dropdown */}
-      <div className="flex justify-end p-2 text-xl cursor-pointer">
-        <button onClick={() => setIsOpen(!isOpen)} className="text-[#00AAFF]">
-          MY PROFILE
-        </button>
-        {isOpen && (
-          <div className="absolute right-2 mt-10 w-60 bg-[#D9D9D9] border rounded-lg shadow-lg">
-            <div className="p-2 space-y-2">
-              <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                <Link to="/profile">Profile</Link>
-              </div>
-              {currentUser?.seller ? (
-                <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                  <Link to="/sellerForm">Edit Seller Form</Link>
-                </div>
-              ) : (
-                <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                  <Link to="/sellerForm">Add Seller Form</Link>
-                </div>
-              )}
-              <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                <button
-                  onClick={() => {
-                    localStorage.clear();
-                    navigate("/");
-                  }}
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      <hr className="border-t-1 border-black mx-2" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Navigation Bar */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-[#00AAFF]">
+            Energy Marketplace
+          </h1>
+          <div className="relative">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="flex items-center space-x-2 text-[#00AAFF] hover:text-[#0095e0] transition-colors"
+            >
+              <span className="font-medium">MY PROFILE</span>
+              <svg
+                className={`w-4 h-4 transform transition-transform ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
 
-      {/* Sellers Table */}
-      <div className="mt-10 flex items-center justify-center w-full">
-        <table className="w-full max-w-4xl text-sm text-left rtl:text-right border-collapse border border-black">
-          <thead className="text-xs uppercase bg-gray-100">
-            <tr className="border-b border-black">
-              <th scope="col" className="px-6 py-3 border-r border-black">
-                Provider name
-              </th>
-              <th scope="col" className="px-6 py-3">
-                Price
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sellers.map((seller) => (
-              <tr key={seller._id} className="border-b border-black">
-                <th
-                  scope="row"
-                  className="px-6 py-4 font-medium border-r border-black"
-                >
-                  <button
-                    onClick={() => setSelectedSeller(seller)}
-                    className="hover:text-[#00AAFF]"
+            {/* Profile Dropdown */}
+            {isOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100">
+                <div className="p-2 space-y-1">
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-md transition-colors"
                   >
-                    {seller.fullName}
+                    Profile
+                  </Link>
+                  {currentUser?.seller ? (
+                    <Link
+                      to="/sellerForm"
+                      className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      Edit Seller Form
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/sellerForm"
+                      className="block px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      Add Seller Form
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      localStorage.clear();
+                      navigate("/");
+                    }}
+                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-blue-50 rounded-md transition-colors"
+                  >
+                    Logout
                   </button>
-                </th>
-                <td className="px-6 py-4">{seller.price} WH/Rupee</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* Table Header */}
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Available Energy Providers
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Select a provider to initiate energy transfer
+            </p>
+          </div>
+
+          {/* Sellers Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 uppercase">
+                    Provider Name
+                  </th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700 uppercase">
+                    Price
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {sellers.map((seller) => (
+                  <tr
+                    key={seller._id}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => setSelectedSeller(seller)}
+                  >
+                    <td className="px-6 py-4">
+                      <button className="text-left font-medium text-[#00AAFF] hover:text-[#0095e0] transition-colors">
+                        {seller.fullName}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-right font-medium text-gray-700">
+                      {seller.price} WH/Rupee
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Modals */}
@@ -277,10 +324,10 @@ const Dashboard = () => {
       >
         <Box sx={modalStyle}>
           <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-            TRANSACTION INITIATED
+            TRADE SUCCESSFULL
           </Typography>
           <Typography sx={{ mb: 2 }}>
-            Transaction Hash: {transactionState.hash}
+          TRANSACTION INITIATED
           </Typography>
           <LinearProgress />
           <Typography sx={{ mt: 2 }}>

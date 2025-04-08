@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 const Profile = () => {
+  // Existing state and logic remains unchanged
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,31 +42,65 @@ const Profile = () => {
   }, []);
 
   if (loading) {
-    return <div className="flex justify-center p-2 text-xl text-[#00AAFF]">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-2xl font-semibold text-[#00AAFF]">
+          Loading Profile...
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="flex justify-center p-2 text-xl text-red-500">Error: {error}</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-500 text-lg font-medium p-4 bg-white rounded-lg shadow-md">
+          Error: {error}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="flex justify-center p-2 text-xl text-[#00AAFF]">PROFILE</div>
-      <hr className="border-t-1 border-black mx-2" />
-      <div className="mt-10 p-2">
-        <div className="flex p-2 text-xl text-[#00AAFF]">MY PROFILE</div>
-        <hr className="border-t-1 border-black mx-2 mr-[500px]" />
-        <div className="flex gap-60 p-2 text-base">
-          <div>Username: {user.fullName}</div>
-          <div>Seller Status: {user.seller ? "True" : "False"}</div>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-[#00AAFF] mb-8">Profile Overview</h1>
+        
+        {/* Profile Section */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-[#00AAFF]/20">
+            <h2 className="text-xl font-semibold text-[#00AAFF]">My Profile</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">Username</label>
+              <p className="text-lg font-semibold text-gray-800">{user.fullName}</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">Seller Status</label>
+              <p className={`text-lg font-semibold ${user.seller ? 'text-green-600' : 'text-gray-800'}`}>
+                {user.seller ? "Verified Seller" : "Standard Account"}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-10 p-2">
-        <div className="flex p-2 text-xl text-[#00AAFF]">Wallet</div>
-        <hr className="border-t-1 border-black mx-2 mr-[500px]" />
-        <div className="flex gap-80 p-2 text-base">
-          <div>Balance: {user.balance}</div>
+        {/* Wallet Section */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-[#00AAFF]/20">
+            <h2 className="text-xl font-semibold text-[#00AAFF]">Wallet Balance</h2>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">Available Balance</label>
+              <p className="text-2xl font-bold text-gray-800">
+                {user.balance?.toFixed(2) || '0.00'} ETH
+              </p>
+            </div>
+            <div className="bg-[#00AAFF]/10 p-3 rounded-lg">
+              <span className="text-[#00AAFF] text-lg">💳</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

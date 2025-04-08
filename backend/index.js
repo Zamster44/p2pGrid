@@ -247,7 +247,7 @@ app.use(cors({ origin: "*" }));
 // Blockchain configuration
 const blockchainConfig = {
   rpcUrl: "http://192.168.231.210:8545", // Replace with actual IP if needed
-  contractAddress: "0xb09da8a5B236fE0295A345035287e80bb0008290", // Your deployed contract address (update if needed)
+  contractAddress: "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f", // Your deployed contract address (update if needed)
   contractABI: [
     "function registerUser(string, uint256, uint256) public",
     "function tradeEnergy(address, uint256, uint256) public",
@@ -548,29 +548,6 @@ app.put("/update-seller/:email", authenticateToken, async (req, res) => {
 
     if (!updatedSeller) {
       return res.status(404).json({ error: true, message: "Seller not found" });
-    }
-
-    // Update blockchain with seller details by updating user's on-chain details
-    const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
-    const wallet = new ethers.Wallet(updatedSeller.privateKey, provider);
-    const contract = new ethers.Contract(
-      blockchainConfig.contractAddress,
-      blockchainConfig.contractABI,
-      wallet
-    );
-    const charge = parseInt(currentStateOfCharge);
-    const priceValue = parseInt(price);
-
-    try {
-      const tx = await contract.updateUserDetails(charge, priceValue);
-      await tx.wait();
-    } catch (error) {
-      console.error("Blockchain update error:", error);
-      return res.status(500).json({
-        error: true,
-        message: "Blockchain update failed",
-        details: error.message,
-      });
     }
 
     return res.json({
